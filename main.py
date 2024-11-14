@@ -55,11 +55,11 @@ def cadastro():
     Parametro -> ()
     '''
     empresa = {}
-    nome = input("Digite o seu nome: ")
-    email = input("Digite o seu Email: ")
+    nome = input("Digite o nome da empresa: ")
+    email = input("Digite o email para contato: ")
     senha = input("Digite a senha: ")
     senhaaux = input("Confirme a senha: ")
-    cnpj = input("Digite o seu cpf: ")
+    cnpj = input("Digite o seu cnpj: ")
     cep = input("Digite seu Cep(XXXXX-XXX): ")
     status = verificar_informacoes(email=email,senha1=senha,senha2=senhaaux, cnpj=cnpj, cep=cep)
     if status == True :
@@ -99,11 +99,11 @@ def login_empresa():
     for empresa in empresas:
         if empresa['cnpj'] == cnpj_input and empresa['senha'] == senha_input:
             print("Login realizado com sucesso!")
-            print(f"Bem-vindo, {empresa['nome']}!")
+            print(f"Bem-vindo, {empresa['nome_empresa']}!")
             return empresa
 
    
-    print("CPF ou senha incorretos.")
+    print("Cnpj ou senha incorretos.")
     return None
     
 def cadastrar_empresa(nome,senha,cnpj,email,empresa,id_endereco):
@@ -149,9 +149,8 @@ def buscar_cep(cep):
                 erro =False if dados['erro'] else True
             except:
                 erro= True
-            if req.status_code == 200 and erro:
+            if req.status_code == 200 and erro:            
                 
-                print(dados)
                 endereco = {
                     'cep':cep,
                     'logradouro': dados['logradouro'],
@@ -161,6 +160,7 @@ def buscar_cep(cep):
                     'uf': dados['uf']
                 }
                 tentativa = True
+                print(endereco)
                 return endereco
             else:
                 print(f'Erro ao buscar CEP: {req.status_code} - {req.text}')
@@ -252,7 +252,7 @@ def get_industrias(id_empresa):
             industrias = req.json()
             return industrias
         else:
-            print("Nehum carro encontrado!")
+            print("Nehuma industria encontrado!")
             return []
     except Exception as e:
         print(e)
@@ -265,16 +265,15 @@ def crud_empresa(empresa):
 
     """
     escolha = 0
-    emp = empresa[0]
-    id_empresa = emp['id_empresa']
+    id_empresa = empresa['id_empresa']
     crud_escolha = False
     while not crud_escolha:
         lista_industrias = get_industrias(id_empresa)
         escolha_bool = False
-        estilizado("Bem-vindo a central de seus veiculos")
+        estilizado("Bem-vindo a central de informações da empresa")
         while not escolha_bool:
             try:
-                escolha = int(input("Escolha entre as seguintes opções\n1)Inserir industrias\n2)Ver suas industrias\n3)Ataulizar informações da Empresa\n-1)sair\n"))
+                escolha = int(input("Escolha entre as seguintes opções\n1)Inserir industrias\n2)Ver suas industrias\n3)Atualizar informações da Empresa\n4)Informações empresa \n-1)sair\n"))
                 if escolha == 1 or escolha == 2 or escolha ==3 or escolha==4 or escolha == -1:
                     escolha_bool= True
                 else:
@@ -291,10 +290,42 @@ def crud_empresa(empresa):
                 else:
                     return
             case 3:
-                crud_escolha = atualizar_empresa(emp)
-
+                crud_escolha = atualizar_empresa(empresa)
+            case 4:
+                crud_escolha = informacoes_empresa(empresa)
             case -1:
                 break
+
+
+def informacoes_empresa(empresa):
+    estilizado("Bem vindo as informações da Empresa")
+    id_endereco = empresa['id_endereco']
+    id_empresa = empresa['id_empresa']
+    emp = get_empresa(id_empresa)
+    endereco = get_endereco(id_endereco)
+    print(f"""
+        Nome:{emp['nome_empresa']}
+        Email:{emp['email']}
+        Senha:{emp['senha']}
+        Cnpj:{emp['cnpj']}
+        Cep:{endereco['cep']}
+        Logradouro:{endereco['logradouro']}
+        Estado:{endereco['uf']}
+    """)
+
+def get_empresa(id_empresa):
+    try:
+        req = requests.get(f"http://127.0.0.1:5000/empresa/{id_empresa}")
+        if req.status_code == 200:
+            empresa = req.json()
+            return empresa
+        else:
+            print("Nehuma industria encontrado!")
+            return []
+    except Exception as e:
+        print(e)
+
+
 def crud_industria(industria):
     escolha = 0
     id_industria = industria['id_industria']
@@ -302,11 +333,11 @@ def crud_industria(industria):
     while not crud_escolha:
         lista_sitios = get_sitios(id_industria)
         escolha_bool = False
-        estilizado("Bem-vindo a central de seus veiculos")
+        estilizado(f"Bem-vindo a central de infomações da sua industria: {industria['nm_industria']}")
         while not escolha_bool:
             try:
-                escolha = int(input("Escolha entre as seguintes opções\n1)Inserir industrias\n2)Ver suas industrias\n-1)sair\n"))
-                if escolha == 1 or escolha == 2 or escolha ==3 or escolha==4 or escolha == -1:
+                escolha = int(input("Escolha entre as seguintes opções\n1)Inserir sitio\n2)Ver seus sitios\n-1)sair\n"))
+                if escolha == 1 or escolha == 2 or escolha == -1:
                     escolha_bool= True
                 else:
                     print("Escolha uma opção valida!!")
@@ -316,19 +347,22 @@ def crud_industria(industria):
             case 1:
                 crud_escolha = cadastrar_sitio(lista_sitios,id_industria)
             case 2:
-                crud_escolha,sitio= escolher_industria(lista_sitios)
-                if(sitio != None):
-                    crud_sitio(sitio)
+                if lista_sitios:
+                    crud_escolha,sitio= escolher_industria(lista_sitios)
+                    if(sitio != None):
+                        crud_escolha = crud_sitio(sitio)
+                    else:
+                        return True
                 else:
-                    return
+                    print("Você não tem nenhum sitio cadastrado para essa industria")
             case -1:
                 break
 
 def crud_sitio(sitio):
     escolha = 0
-    tp_sitio = sitio['tp_sitio']
+    tp_sitio = sitio['tp_fonte']
     lista = []
-    id_sitio = sitio['id_industria']
+    id_sitio = sitio['id_sitio']
     crud_escolha = False
     while not crud_escolha:
         if tp_sitio == 0:
@@ -339,8 +373,8 @@ def crud_sitio(sitio):
         estilizado("Bem-vindo a do sitio de seus veiculos")
         while not escolha_bool:
             try:
-                escolha = int(input("Escolha entre as seguintes opções\n1)Cadastrar fonte\n2)Informações do sitio\n-1)sair\n"))
-                if escolha == 1 or escolha == 2 or escolha == -1:
+                escolha = int(input("Escolha entre as seguintes opções\n1)Cadastrar fonte\n2)Informações do sitio\n3)Excluir fonte\n-1)sair\n"))
+                if escolha == 1 or escolha == 2 or escolha == 3 or escolha == -1:
                     escolha_bool= True
                 else:
                     print("Escolha uma opção valida!!")
@@ -354,8 +388,118 @@ def crud_sitio(sitio):
                     crud_escolha = cadastrar_fonte(id_sitio,lista)
             case 2:
                 crud_escolha = informacoes_sitio(tp_sitio,lista,sitio)
+            case 3:
+                if tp_sitio == 0:
+                    crud_escolha = excluir_maquina(lista)
+                elif tp_sitio == 1 or tp_sitio == 2:
+                    crud_escolha = excluir_fonte(lista)
             case -1:
                 break
+
+def excluir_maquina(lista):
+    """    
+    Essa função serve pra excluir um item pelo indice que ele está na lista.
+    
+    Parametro -> (lista)
+    """
+    if lista:
+        indice = 0
+        dic = lista[0]
+        escolha = 0
+        keys = list(dic.keys())
+        text = ""
+        for i in range(len(lista)):
+            text += f"{i}){lista[i][keys[0]]}\n"
+        escolha_bool = False
+        while not escolha_bool:
+            try:
+                indice = int(input(f"Escolha algum dos seguintes indices para excluir:  \n{text}-1)sair\n"))
+                if indice == -1:
+                    return
+                elif indice >= 0 and indice < len(lista):
+                    escolha_bool = True
+                else:
+                    print("Escolha uma opção valida!!")
+            except ValueError: 
+                print("Escolha uma opção valida!!")
+        escolha_bool = False
+        carro = lista[indice]
+        id_maquina = carro['id_maquina']
+        while not escolha_bool:
+            try:
+                escolha = int(input(f"Você tem certeza que deseja excluir esse registro (Ação irreverssivel):  \n1)Sim\n2)Não\n-1)sair\n"))
+                if escolha == 1 or escolha == 2:
+                    escolha_bool = True
+                else:
+                    print("Escolha uma opção valida!!")
+            except ValueError: 
+                print("Escolha uma opção valida!!")
+        match escolha:
+            case 1:
+                req = requests.delete(f"http://127.0.0.1:5000/maquina/{id_maquina}")
+                if req.status_code == 200:
+                    print("Item excluido com sucesso")
+                    return
+                else:
+                    print("Falha ao excluir maquina")
+                    return
+            case 2:
+                return
+    else:
+        print("Você não tem nenhum registro ainda pra excluir!")
+
+def excluir_fonte(lista):
+    """    
+    Essa função serve pra excluir um item pelo indice que ele está na lista.
+    
+    Parametro -> (lista)
+    """
+    if lista:
+        indice = 0
+        dic = lista[0]
+        escolha = 0
+        keys = list(dic.keys())
+        text = ""
+        for i in range(len(lista)):
+            text += f"{i}){lista[i][keys[0]]}\n"
+        escolha_bool = False
+        while not escolha_bool:
+            try:
+                indice = int(input(f"Escolha algum dos seguintes indices para excluir:  \n{text}-1)sair\n"))
+                if indice == -1:
+                    return
+                elif indice >= 0 and indice < len(lista):
+                    escolha_bool = True
+                else:
+                    print("Escolha uma opção valida!!")
+            except ValueError: 
+                print("Escolha uma opção valida!!")
+        escolha_bool = False
+        carro = lista[indice]
+        id_fonte = carro['id_fonte']
+        while not escolha_bool:
+            try:
+                escolha = int(input(f"Você tem certeza que deseja excluir esse registro (Ação irreverssivel):  \n1)Sim\n2)Não\n-1)sair\n"))
+                if escolha == 1 or escolha == 2:
+                    escolha_bool = True
+                else:
+                    print("Escolha uma opção valida!!")
+            except ValueError: 
+                print("Escolha uma opção valida!!")
+        match escolha:
+            case 1:
+                req = requests.delete(f"http://127.0.0.1:5000/aparelhoGerado/{id_fonte}")
+                if req.status_code == 200:
+                    print("Item excluido com sucesso")
+                    return
+                else:
+                    print("Falha ao excluir aparelho gerador")
+                    return
+            case 2:
+                return
+    else:
+        print("Você não tem nenhum registro ainda pra excluir!")
+
 
 def informacoes_sitio(tp_sitio,lista,sitio):
     estilizado("Bem vindo as informações do sitio")
@@ -365,7 +509,7 @@ def informacoes_sitio(tp_sitio,lista,sitio):
     endereco = get_endereco(id_endereco)
     print(f"""
         Tipo:{tipo}
-        Consumo/Potencia:{consumo}
+        Consumo/Potencia:{consumo} KW
         Cep:{endereco['cep']}
         Logradouro:{endereco['logradouro']}
         Estado:{endereco['uf']}
@@ -400,7 +544,7 @@ def cadastrar_fonte(id_sitio,lista):
             while tentativa !=True:
                 try:
                     potencia = int(input("Qual a potencia da fonte: "))
-                    quantidade = int(input("Digite a quantidade de fontes"))
+                    quantidade = int(input("Digite a quantidade de fontes: "))
                     tipo = int(input("Escolha o tipo da fonte\n[1] Solar. \n[2] Eólica.\n"))
                     if(1<=tipo>=2):
                         tentativa = True
@@ -412,10 +556,10 @@ def cadastrar_fonte(id_sitio,lista):
                     lista.append(fonte)
             if(fonte):   
                 print("Fonte(s) adicionada(s) com sucesso!")
-                return fonte
+                return False
             else:
                 print("Falha ao adicionar sitio")
-                return
+                return True
         except ValueError:
             print("Falha adicionar valor, tente novamente!")
 
@@ -441,7 +585,7 @@ def cadastrar_maquina(id_sitio,lista):
             while tentativa !=True:
                 try:
                     consumo = int(input("Qual o consumo da maquina: "))
-                    quantidade = int(input("Digite a quantidade de maquinas"))
+                    quantidade = int(input("Digite a quantidade de maquinas: "))
                     tentativa= True
                 except:
                     print("Escreva uma opção valida!")
@@ -452,10 +596,10 @@ def cadastrar_maquina(id_sitio,lista):
                     lista.append(maquina)
             if(maquina):   
                 print("Maquina(s) adicionada(s) com sucesso!")
-                return maquina
+                return False
             else:
                 print("Falha ao adicionar sitio")
-                return
+                return True
         except ValueError:
             print("Falha adicionar valor, tente novamente!")
 
@@ -499,12 +643,12 @@ def get_fonte(id_sitio):
 def get_sitios(id_industria):
 
     try:
-        req = requests.get(f"http://127.0.0.1:5000/sitios/listar/{id_industria}")
+        req = requests.get(f"http://127.0.0.1:5000/sitio/listar/{id_industria}")
         if req.status_code == 200:
             sitios = req.json()
             return sitios
         else:
-            print("Nehum carro encontrado!")
+            print("Nehum sitio encontrado!")
             return []
     except Exception as e:
         print(e)
@@ -531,10 +675,10 @@ def cadastrar_sitio(lista_sitios,id_industria):
             if(sitio):   
                 print("Sitio adicionado com sucesso!")
                 lista_sitios.append(sitio)
-                return sitio
+                return False
             else:
                 print("Falha ao adicionar sitio")
-                return
+                return True
         except ValueError:
             print("Falha adicionar valor, tente novamente!")
 
@@ -544,11 +688,11 @@ def adicionar_sitio(endereco,id_industria,tp_sitio):
     sitio['id_endereco'] = id_endereco
     sitio['tp_sitio'] = tp_sitio
     sitio['id_industria'] = id_industria
-    req = requests.post("http://127.0.0.1:5000/industria",json=sitio)
+    req = requests.post("http://127.0.0.1:5000/sitio",json=sitio)
     if req.status_code == 200:
         return sitio
     else:
-        print("Erro ao adicionar carro")
+        print("Erro ao adicionar sitio")
         return None
 
 def escolher_industria(industrias):
@@ -557,7 +701,7 @@ def escolher_industria(industrias):
     keys = list(dic.keys())
     text = ""
     for i in range(indice):
-        text += f"{i}){industrias[i][keys[1]]}\n"
+        text += f"{i}){industrias[i][keys[2]]}\n"
         escolha_bool = False
     while not escolha_bool:
         try:
@@ -605,41 +749,43 @@ def atualizar_empresa(lista):
     """
     if lista:
         indice = 0
-        dic = lista[0]
-        keys = [list(dic.keys())]
-        
-        text_2 = ""
-        for i in range(len(lista)):
-            text_2 += f"{i}){lista[i][keys[0][1]]}\n"
         escolha_bool = False
         while not escolha_bool:
             try:
-                indice = int(input(f"Escolha algum dos seguintes indices:  \n{text_2}\n-1)sair\n"))
+                indice = int(input(f"Escolha qual informação você deseja atualizar \n1)Email\n2)Senha\n-1)sair\n"))
                 if indice == -1:
                     return
-                elif indice >= 0 and indice < len(lista):
+                elif indice > 0 and indice <= 2:
                     escolha_bool = True
                 else:
                     print("Escolha uma opção valida!!")
             except ValueError: 
                 print("Escolha uma opção valida!!")
-        empresa = lista[indice]
-        id_empresa = empresa['id_empresa']
+        id_empresa = lista['id_empresa']
         nome_valido = False
+        tentativa = False
+        senha = ''
+        email = ''
         while nome_valido != True:
             try:
-                email = input("Digite o novo email: \n")
-                senha = input("Digite a nova senha: ")
-                senha_aux = input("Digite a nova senha: ")
-                if verificar_email(email) and senha == senha_aux:
+                if indice == 1:
+                    email = input("Digite o novo email: \n")
+                    if verificar_email(email) and email != lista['email'] and email != '':
+                        tentativa = True
+                elif indice == 2:
+                    senha = input("Digite a nova senha: ")
+                    senha_aux = input("Digite a nova senha: ")
+                    if senha == senha_aux and senha != '' and senha_aux != '':
+                        tentativa = True
+                if tentativa:
                     nome_valido=True
                 else:
                     print("Email invalido ou senhas diferentes!!")
             except ValueError:
                 print("Você precisa inserir um numero!") 
         empresa_dict = {
-            'email':email,
-            'senha':senha
+            'email':email if email else lista['email'],
+            'senha':senha if senha else lista['senha']
         }
 
         req = requests.put(f"http://127.0.0.1:5000/empresa/{id_empresa}",json=empresa_dict)
@@ -677,7 +823,7 @@ def menu():
     tentativa = False
     while tentativa !=True:
         try:
-            opcao_saida = int(input("Olá tudo bem, qual seria sua necessidade.\n[1] logar-se.\n[2] Cadastrar-se. \n[3] Industrias. \n[4] Informações.\n[5] Json(s).\n[-1] Para sair.\n"))
+            opcao_saida = int(input("Olá tudo bem, qual seria sua necessidade.\n[1] logar-se.\n[2] Cadastrar-se. \n[3] Empresa.\n[4] Json(s).\n[-1] Para sair.\n"))
             if 0< opcao_saida <=8 or opcao_saida == -1:
                 tentativa= True
                 return opcao_saida
@@ -685,6 +831,83 @@ def menu():
                 print("Escreva uma opção valida!")
         except:
                 print("Escreva uma opção valida!")
+
+def exportar_json():
+    tentativa = False
+    while tentativa !=True:
+        try:
+            opcao_saida = int(input("Escolha qual tabela você quer extrair para JSON: \n[1] Empresas.\n[2] Enderecos.\n[3] Sitios.\n[4] Industrias.\n[5] Maquinas.\n[6] Aparelho Gerador.\n[-1] Para sair.\n"))
+            if 0< opcao_saida <=6 or opcao_saida == -1:
+                tentativa= True
+                return opcao_saida
+            else:
+                print("Escreva uma opção valida!")
+        except:
+                print("Escreva uma opção valida!")
+
+def exportar_escolha(escolha):
+    try:
+        match escolha:
+            case 1:
+                req = requests.get(f"http://127.0.0.1:5000/empresa")
+                if req.status_code == 200:
+                    empresas = req.json()
+                    with open('empresa.json', 'w') as f:
+                        json.dump(empresas, f, indent=4)
+                        print("Empresas exportadas com sucesso")
+                else:
+                    print("Não foi possível exportar a tabela empresa.")
+            case 2:
+                req = requests.get(f"http://127.0.0.1:5000/endereco")
+                if req.status_code == 200:
+                    enderecos = req.json()
+                    with open('contatos.json', 'w') as f:
+                        json.dump(enderecos, f, indent=4)
+                        print("Endereço exportado com sucesso")
+                else:
+                    print("Não foi possível exportar a tabela endereco.")
+            case 3:
+                req = requests.get(f"http://127.0.0.1:5000/sitio")
+                if req.status_code == 200:
+                    sitios = req.json()
+                    with open('usuarios.json', 'w') as f:
+                        json.dump(sitios, f, indent=4)
+                        print("Sitios exportados com sucesso")
+                else:
+                    print("Não foi possível exportar a tabela sitio.")
+            case 4:
+                req = requests.get(f"http://127.0.0.1:5000/industria")
+                if req.status_code == 200:
+                    industrias = req.json()
+                    with open('carros.json', 'w') as f:
+                        json.dump(industrias, f, indent=4)
+                        print("Industrias exportadas com sucesso")
+
+                else:
+                    print("Não foi possível exportar a tabela industria.")
+            case 5:
+                req = requests.get(f"http://127.0.0.1:5000/maquina")
+                if req.status_code == 200:
+                    maquinas = req.json()
+                    with open('feedback.json', 'w') as f:
+                        json.dump(maquinas, f, indent=4)
+                        print("Maquinas exportadas com sucesso!")
+                else:
+                    print("Não foi possível exportar a tabela maquinas.")
+            case 6:
+                req = requests.get("http://127.0.0.1:5000/aparelhoGerado")
+                if req.status_code == 200:
+                    aparelhos = req.json()
+                    with open('consertos.json', 'w') as f:
+                        json.dump(aparelhos, f, indent=4)
+                        print("Aparelhos geradores exportados com sucesso")
+                else:
+                    print("Não foi possível exportar a tabela aparelho_gerador.")
+            case -1:
+                estilizado("saindo")
+                return
+    except:
+        print("Erro ao exportar dados")
 
 def decisao(opcao,empresa):
     """    
@@ -696,13 +919,13 @@ def decisao(opcao,empresa):
     if opcao <= 8 and opcao > 0  or opcao == -1:
         match opcao:
             case 1:
-                if not empresa: 
+                if not empresa or empresa == None: 
                     user = login_empresa()
                     empresa.append(user)
                 else:
                     print("Você ja esta logado!")
             case 2:
-                if not empresa:
+                if not empresa or empresa == None:
                     user = cadastro()
                     if user != None:
                         print(user)
@@ -710,20 +933,13 @@ def decisao(opcao,empresa):
                 else:
                     print("Você ja esta logado!")
             case 3:
-                if empresa:
+                if empresa or empresa == None:
                     emp = empresa[0]
-                    id_empresa = empresa['id_empresa']
-                    crud_empresa(emp,id_empresa=id_empresa)
+                    id_empresa = emp['id_empresa']
+                    crud_empresa(emp)
                 else:
                     print("Você não está logado!")
             case 4:
-                if empresa:
-                    emp = empresa[0]
-                    id_empresa = empresa['id_empresa']
-                    crud(emp,id_empresa=id_empresa)
-                else:
-                    print("Você não está logado!")
-            case 5:
                 escolha = exportar_json()
                 exportar_escolha(escolha)
             case -1:
@@ -739,3 +955,7 @@ def main():
     while opcao_saida != -1:
         opcao_saida = menu()
         decisao(opcao_saida,empresa)
+
+
+#--------------------------------------------------------------principal-------------------------------------------------------------------------------------
+main()

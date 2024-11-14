@@ -9,12 +9,12 @@ def conexao():
 
 app = f(__name__)
 
-@app.route("/empresa/<id:int>", methods=['GET'])
+@app.route('/empresa/<int:id>', methods=['GET'])
 def listarEmpresas(id):
     try:
         con = conexao()
         cur = con.cursor()
-        cur.execute("SELECT * FROM EMPRESA WHERE ID_EMPRESA = :id", {"id":id})
+        cur.execute("SELECT * FROM t_gl_EMPRESA WHERE ID_EMPRESA = :id", {"id":id})
         dados = cur.fetchone()
         if dados:
             resultado = {
@@ -41,7 +41,7 @@ def listarTodasEmpresas():
     try:
         con = conexao()
         cur = con.cursor()
-        cur.execute("SELECT * FROM EMPRESA")
+        cur.execute("SELECT * FROM t_gl_EMPRESA")
         dados = cur.fetchall()
         if dados:
             resultado = []
@@ -73,8 +73,9 @@ def criarEmpresa():
     try:
         con = conexao()
         cur = con.cursor()
-        dados = request.json()
-        cur.execute("INSERT INTO EMPRESA (nm_empresa, nr_cnpj, email,senha,t_gl_endereco_id_endereco) values (:nome,:cnpj,:email,:senha,:id_endereco)", {'nome':dados['nome'],'cnpj':dados['cnpj'],'email':dados['email'],'senha':dados['senha'],'id_endereco':dados['id_endereco']})
+        dados = request.get_json()
+        print(dados)
+        cur.execute("INSERT INTO t_gl_EMPRESA (nm_empresa, nr_cnpj, email,senha,id_endereco) values (:nome,:cnpj,:email,:senha,:id_endereco)", {'nome':dados['nome'],'cnpj':dados['cnpj'],'email':dados['email'],'senha':dados['senha'],'id_endereco':dados['endereco']})
         con.commit()
         cur.execute("SELECT * FROM t_gl_empresa WHERE ROWNUM = 1 ORDER BY id_empresa DESC")
         dados = cur.fetchone()
@@ -103,10 +104,10 @@ def atualizarEmpresa(id):
     try:
         con = conexao()
         cur = con.cursor()
-        dados = request.json()
-        cur.execute("UPDATE EMPRESA SET  email = :email, senha = :senha WHERE id_empresa = :id", {'email':dados['email'],'senha':dados['senha'],'id':id})
+        dados = request.get_json()
+        cur.execute("UPDATE t_gl_EMPRESA SET  email = :email, senha = :senha WHERE id_empresa = :id", {'email':dados['email'],'senha':dados['senha'],'id':id})
         con.commit()
-        cur.execute("SELECT * FROM EMPRESA WHERE id_empresa = :id", {'id':id})
+        cur.execute("SELECT * FROM t_gl_EMPRESA WHERE id_empresa = :id", {'id':id})
         dados = cur.fetchone()
         if dados:
             resultado = {
@@ -133,7 +134,7 @@ def excluirEmpresa(id):
     try:
         con = conexao()
         cur = con.cursor()
-        cur.execute("DELETE FROM EMPRESA WHERE id_empresa = :id", {'id':id})
+        cur.execute("DELETE FROM t_gl_EMPRESA WHERE id_empresa = :id", {'id':id})
         con.commit()
         cur.close()
         con.close()
@@ -142,19 +143,22 @@ def excluirEmpresa(id):
         print("Erro de banco de dados: ", db_err)
         return jsonify({"erro": "Erro de banco de dados"}), 500
 
-@app.route("/endereco/<id:int>", methods=['GET'])
+@app.route("/endereco/<int:id>", methods=['GET'])
 def listarEndereco(id):
     try:
         con = conexao()
         cur = con.cursor()
-        cur.execute("SELECT * FROM ENDERECO WHERE ID_ENDERECO = :id", {"id":id})
+        cur.execute("SELECT * FROM t_gl_ENDERECO WHERE ID_ENDERECO = :id", {"id":id})
         dados = cur.fetchone()
         if dados:
             resultado = {
             'id_endereco':dados[0],
             'cep':dados[1],
             'logradouro':dados[2],
-            'complemento':dados[3]
+            'complemento':dados[3],
+            'bairro':dados[4],
+            'uf':dados[5],
+            'cidade':dados[6]
             }
             status = 200
         else:
@@ -172,10 +176,11 @@ def criarEndereco():
     try:
         con = conexao()
         cur = con.cursor()
-        dados = request.json()
-        cur.execute("INSERT INTO ENDERECO (cep, logradouro, complemento) values (:cep,:logradouro,:complemento)", {'cep':dados['cep'],'logradouro':dados['logradouro'],'complemento':dados['complemento']})
+        dados = request.get_json()
+        print(dados)
+        cur.execute("INSERT INTO t_gl_ENDERECO (cep, nm_logradouro,cidade,bairro,uf,ds_complemento) values (:cep,:logradouro,:cidade,:bairro,:uf,:complemento)", {'cep':dados['cep'],'logradouro':dados['logradouro'],'cidade':dados['cidade'],'bairro':dados['bairro'],'uf':dados['uf'],'complemento':dados['complemento']})
         con.commit()
-        cur.execute("SELECT * FROM ENDERECO WHERE ROWNUM = 1 ORDER BY id_endereco DESC")
+        cur.execute("SELECT * FROM t_gl_ENDERECO WHERE ROWNUM = 1 ORDER BY id_endereco DESC")
         dados = cur.fetchone()
         if dados:
             resultado = {
@@ -200,10 +205,10 @@ def atualizarEndereco(id):
     try:
         con = conexao()
         cur = con.cursor()
-        dados = request.json()
-        cur.execute("UPDATE ENDERECO SET cep = :cep, logradouro = :logradouro, complemento = :complemento WHERE id_endereco = :id", {'cep':dados['cep'],'logradouro':dados['logradouro'],'complemento':dados['complemento'],'id':id})
+        dados = request.get_json()
+        cur.execute("UPDATE t_gl_ENDERECO SET cep = :cep, logradouro = :logradouro, complemento = :complemento WHERE id_endereco = :id", {'cep':dados['cep'],'logradouro':dados['logradouro'],'complemento':dados['complemento'],'id':id})
         con.commit()
-        cur.execute("SELECT * FROM ENDERECO WHERE id_endereco = :id", {'id':id})
+        cur.execute("SELECT * FROM t_gl_ENDERECO WHERE id_endereco = :id", {'id':id})
         dados = cur.fetchone()
         if dados:
             resultado = {
@@ -223,12 +228,44 @@ def atualizarEndereco(id):
         print("Erro de banco de dados: ", db_err)
         return jsonify({"erro": "Erro de banco de dados"}), 500
 
+@app.route('/endereco',methods=['GET'])
+def listarTodosEnderecos():
+    try:
+        con = conexao()
+        cur = con.cursor()
+        cur.execute("SELECT * FROM t_gl_endereco")
+        dados = cur
+        if dados:
+            resultado = []
+            for linha in dados:
+                endereco = {
+                    'id_endereco':linha[0],
+                    'cep':linha[1],
+                    'logradouro':linha[2],
+                    'numero':linha[3],
+                    'complemento':linha[4],
+                    'bairro':linha[5],
+                    'cidade':linha[6],
+                    'estado':linha[7]
+                }
+                resultado.append(endereco)
+            status = 200
+        else:
+            resultado = {}
+            status = 404
+        cur.close()
+        con.close()
+        return jsonify(resultado), status
+    except oracledb.DatabaseError as db_err:
+        print("Erro de banco de dados: ", db_err)
+        return jsonify({"erro": "Erro de banco de dados"}), 500
+
 @app.route('/endereco/<int:id>',methods=['DELETE'])
 def excluirEndereco(id):
     try:
         con = conexao()
         cur = con.cursor()
-        cur.execute("DELETE FROM ENDERECO WHERE id_endereco = :id", {'id':id})
+        cur.execute("DELETE FROM t_gl_ENDERECO WHERE id_endereco = :id", {'id':id})
         con.commit()
         cur.close()
         con.close()
@@ -243,8 +280,8 @@ def inserirMaquina():
     try:
         con = conexao()
         cur = con.cursor()
-        dados = request.json()
-        cur.execute("INSERT INTO t_gl_maquina (consumo,ds_maquina,t_gl_sitio_id_sitio) values (:consumo,:ds_maquina,:id_sitio)", {'consumo':dados['consumo'],'ds_maquina':dados['ds_maquina'],'id_sitio':dados['id_sitio']})
+        dados = request.get_json()
+        cur.execute("INSERT INTO t_gl_maquina (consumo,ds_maquina,id_sitio) values (:consumo,:ds_maquina,:id_sitio)", {'consumo':dados['consumo'],'ds_maquina':dados['ds_maquina'],'id_sitio':dados['id_sitio']})
         con.commit()
         cur.execute("SELECT * FROM t_gl_maquina WHERE ROWNUM = 1 ORDER BY id_maquina DESC")
         dados = cur.fetchone()
@@ -270,8 +307,8 @@ def atualizarMaquina(id):
     try:
         con = conexao()
         cur = con.cursor()
-        dados = request.json()
-        cur.execute("UPDATE t_gl_maquina SET consumo = :consumo, ds_maquina = :ds_maquina, t_gl_sitio_id_sitio = :id_sitio WHERE id_maquina = :id", {'consumo':dados['consumo'],'ds_maquina':dados['ds_maquina'],'id_sitio':dados['id_sitio'],'id':id})
+        dados = request.get_json()
+        cur.execute("UPDATE t_gl_maquina SET consumo = :consumo, ds_maquina = :ds_maquina, id_sitio = :id_sitio WHERE id_maquina = :id", {'consumo':dados['consumo'],'ds_maquina':dados['ds_maquina'],'id_sitio':dados['id_sitio'],'id':id})
         con.commit()
         cur.execute("SELECT * FROM t_gl_maquina WHERE id_maquina = :id", {'id':id})
         dados = cur.fetchone()
@@ -307,7 +344,7 @@ def excluirMaquina(id):
         print("Erro de banco de dados: ", db_err)
         return jsonify({"erro": "Erro de banco de dados"}), 500
 
-@app.route("/maquina/<id:int>", methods=['GET'])
+@app.route("/maquina/<int:id>", methods=['GET'])
 def listarMaquina(id):
     try:
         con = conexao()
@@ -331,8 +368,35 @@ def listarMaquina(id):
     except oracledb.DatabaseError as db_err:
         print("Erro de banco de dados: ", db_err)
         return jsonify({"erro": "Erro de banco de dados"}), 500
+@app.route('/maquina',methods=['GET'])
+def listarTodasMaquinas():
+    try:
+        con = conexao()
+        cur = con.cursor()
+        cur.execute("SELECT * FROM t_gl_maquina")
+        dados = cur.fetchall()
+        if dados:
+            resultado = []
+            for linha in dados:
+                maquina = {
+                'id_maquina':linha[0],
+                'potencia':linha[1],
+                'tipo':linha[2],
+                'id_sitio':linha[3]
+                }
+                resultado.append(maquina)
+            status = 200
+        else:
+            resultado = {}
+            status = 404
+        cur.close()
+        con.close()
+        return jsonify(resultado), status
+    except oracledb.DatabaseError as db_err:
+        print("Erro de banco de dados: ", db_err)
+        return jsonify({"erro": "Erro de banco de dados"}), 500
 
-@app.route("/maquina/listar/<id:ind>", methods=['GET'])
+@app.route("/maquina/listar/<int:id>", methods=['GET'])
 def listarMaquinas(id):
     try:
         con = conexao()
@@ -366,8 +430,8 @@ def inserirAparelhoGerado():
     try:
         con = conexao()
         cur = con.cursor()
-        dados = request.json()
-        cur.execute("INSERT INTO (potencia,tipo,t_gl_sitio_id_sitio) values (:potencia,:tipo,:id_sitio)", {'potencia':dados['potencia'],'tipo':dados['tipo'],'id_sitio':dados['id_sitio']})
+        dados = request.get_json()
+        cur.execute("INSERT INTO (potencia,tipo,id_sitio) values (:potencia,:tipo,:id_sitio)", {'potencia':dados['potencia'],'tipo':dados['tipo'],'id_sitio':dados['id_sitio']})
         con.commit()
         cur.execute("SELECT * FROM t_gl_aparelho_gerado WHERE ROWNUM = 1 ORDER BY id_aparelho_gerado DESC")
         dados = cur.fetchone()
@@ -394,7 +458,7 @@ def atualizarAparelhoGerado(id):
     try:
         con = conexao()
         cur = con.cursor()
-        dados = request.json()
+        dados = request.get_json()
         cur.execute("UPDATE t_gl_aparelho_gerado SET potencia = :potencia WHERE id_aparelho_gerado = :id", {'potencia':dados['potencia'],'id':id})
         con.commit()
         cur.execute("SELECT * FROM t_gl_aparelho_gerado WHERE id_aparelho_gerado = :id", {'id':id})
@@ -431,7 +495,7 @@ def excluirAparelhoGerado(id):
         print("Erro de banco de dados: ", db_err)
         return jsonify({"erro": "Erro de banco de dados"}), 500
 
-@app.route("/aparelhoGerado/<id:int>", methods=['GET'])
+@app.route("/aparelhoGerado/<int:id>", methods=['GET'])
 def listarAparelhoGerado(id):
     try:
         con = conexao()
@@ -455,8 +519,36 @@ def listarAparelhoGerado(id):
     except oracledb.DatabaseError as db_err:
         print("Erro de banco de dados: ", db_err)
         return jsonify({"erro": "Erro de banco de dados"}), 500
+    
+@app.route('/aparelhoGerado',methods=['GET'])
+def listarTodosAparelhosGerados():
+    try:
+        con = conexao()
+        cur = con.cursor()
+        cur.execute("SELECT * FROM t_gl_aparelho_gerado")
+        dados = cur.fetchall()
+        if dados:
+            resultado = []
+            for linha in dados:
+                aparelho = {
+                'id_aparelho_gerado':linha[0],
+                'potencia':linha[1],
+                'tipo':linha[2],
+                'id_sitio':linha[3]
+                }
+                resultado.append(aparelho)
+            status = 200
+        else:
+            resultado = {}
+            status = 404
+        cur.close()
+        con.close()
+        return jsonify(resultado), status
+    except oracledb.DatabaseError as db_err:
+        print("Erro de banco de dados: ", db_err)
+        return jsonify({"erro": "Erro de banco de dados"}), 500
 
-@app.route("/aparelhoGerado/listar/<id:ind>", methods=['GET'])
+@app.route("/aparelhoGerado/listar/<int:id>", methods=['GET'])
 def listarAparelhosGerados(id):
     try:
         con = conexao()
@@ -489,8 +581,8 @@ def inserirSitio():
     try:
         con = conexao()
         cur = con.cursor()
-        dados = request.json()
-        cur.execute("INSERT INTO t_gl_sitio (tp_fonte,t_gl_industria_id_industria,t_gl_endereco_id_endereco) values (:tp_fonte,:id_industria,:id_endereco)", {'tp_fonte':dados['tp_fonte'],'id_industria':dados['id_industria'],'id_endereco':dados['id_endereco']})
+        dados = request.get_json()
+        cur.execute("INSERT INTO t_gl_sitio (tp_fonte,id_industria,id_endereco) values (:tp_fonte,:id_industria,:id_endereco)", {'tp_fonte':dados['tp_sitio'],'id_industria':dados['id_industria'],'id_endereco':dados['id_endereco']})
         con.commit()
         cur.execute("SELECT * FROM t_gl_sitio WHERE ROWNUM = 1 ORDER BY id_sitio DESC")
         dados = cur.fetchone()
@@ -517,7 +609,7 @@ def atualizarSitio(id):
     try:
         con = conexao()
         cur = con.cursor()
-        dados = request.json()
+        dados = request.get_json()
         cur.execute("UPDATE t_gl_sitio SET tp_fonte = :tp_fonte WHERE id_sitio = :id", {'tp_fonte':dados['tp_fonte'],'id':id})
         con.commit()
         cur.execute("SELECT * FROM t_gl_sitio WHERE id_sitio = :id", {'id':id})
@@ -554,7 +646,7 @@ def excluirSitio(id):
         print("Erro de banco de dados: ", db_err)
         return jsonify({"erro": "Erro de banco de dados"}), 500
 
-@app.route("/sitio/<id:int>", methods=['GET'])
+@app.route("/sitio/<int:id>", methods=['GET'])
 def listarSitio(id):
     try:
         con = conexao()
@@ -578,8 +670,38 @@ def listarSitio(id):
     except oracledb.DatabaseError as db_err:
         print("Erro de banco de dados: ", db_err)
         return jsonify({"erro": "Erro de banco de dados"}), 500
-    
-@app.route("/sitio/listar/<id:ind>", methods=['GET'])
+
+
+@app.route('/sitio',methods=['GET'])
+def listarTodosSitios():
+    try:
+        con = conexao()
+        cur = con.cursor()
+        cur.execute("SELECT * FROM t_gl_sitio")
+        dados = cur.fetchall()
+        if dados:
+            resultado = []
+            for linha in dados:
+                sitio = {
+                'id_sitio':linha[0],
+                'tp_fonte':linha[1],
+                'id_industria':linha[2],
+                'id_endereco':linha[3]
+                }
+                resultado.append(sitio)
+            status = 200
+        else:
+            resultado = {}
+            status = 404
+        cur.close()
+        con.close()
+        return jsonify(resultado), status
+    except oracledb.DatabaseError as db_err:
+        print("Erro de banco de dados: ", db_err)
+        return jsonify({"erro": "Erro de banco de dados"}), 500
+
+
+@app.route("/sitio/listar/<int:id>", methods=['GET'])
 def listarSitios(id):
     try:
         con = conexao()
@@ -614,8 +736,8 @@ def inserirIndustria():
     try:
         con = conexao()
         cur = con.cursor()
-        dados = request.json()
-        cur.execute("INSERT INTO t_gl_industria (nm_industria,t_gl_empresa_id_empresa) values (:nm_industria,:id_empresa)", {'nm_industria':dados['nm_industria'],'id_empresa':dados['id_empresa']})
+        dados = request.get_json()
+        cur.execute("INSERT INTO t_gl_industria (nm_industria,id_empresa) values (:nm_industria,:id_empresa)", {'nm_industria':dados['nome'],'id_empresa':dados['id_empresa']})
         con.commit()
         cur.execute("SELECT * FROM t_gl_industria WHERE ROWNUM = 1 ORDER BY id_industria DESC")
         dados = cur.fetchone()
@@ -641,7 +763,7 @@ def atualizarIndustria(id):
     try:
         con = conexao()
         cur = con.cursor()
-        dados = request.json()
+        dados = request.get_json()
         cur.execute("UPDATE t_gl_industria SET nm_industria = :nm_industria WHERE id_industria = :id", {'nm_industria':dados['nm_industria'],'id':id})
         con.commit()
         cur.execute("SELECT * FROM t_gl_industria WHERE id_industria = :id", {'id':id})
@@ -677,7 +799,7 @@ def excluirIndustria(id):
         print("Erro de banco de dados: ", db_err)
         return jsonify({"erro": "Erro de banco de dados"}),500
 
-@app.route("/industria/<id:int>", methods=['GET'])
+@app.route("/industria/<int:id>", methods=['GET'])
 def listarIndustria(id):
     try:
         con = conexao()
@@ -705,8 +827,8 @@ def listarIndustria(id):
         return jsonify({"erro": "Erro de banco de dados"}), 500
 
             
-@app.route('/industria/listar/<id:int>',methods=['GET'])
-def listarTodasIndustrias(id):
+@app.route('/industria/listar/<int:id>',methods=['GET'])
+def listarTodasIndustriasid(id):
     try:
         con = conexao()
         cur = con.cursor()
@@ -731,3 +853,33 @@ def listarTodasIndustrias(id):
     except oracledb.DatabaseError as db_err:
         print("Erro de banco de dados: ", db_err)
         return jsonify({"erro": "Erro de banco de dados"}), 500
+
+@app.route('/industria',methods=['GET'])
+def listarTodasIndustrias():
+    try:
+        con = conexao()
+        cur = con.cursor()
+        cur.execute("SELECT * FROM t_gl_industria")
+        dados = cur
+        if dados:
+            resultado = []
+            for linha in dados:
+                industria = {
+                'id_industria':linha[0],
+                'nm_industria':linha[1],
+                'id_empresa':linha[2]
+                }
+                resultado.append(industria)
+            status = 200
+        else:
+            resultado = {}
+            status = 404
+        cur.close()
+        con.close()
+        return jsonify(resultado), status
+    except oracledb.DatabaseError as db_err:
+        print("Erro de banco de dados: ", db_err)
+        return jsonify({"erro": "Erro de banco de dados"}), 500
+    
+
+app.run(debug=True)
