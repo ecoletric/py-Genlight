@@ -1,9 +1,10 @@
 #Felipe Ribeiro Tardochi Da Silva Rm:555100
 #Gustavo Dias da Silva Cruz Rm:556448
-#Julia Medeiros Angelozi Rm:
+#Julia Medeiros Angelozi Rm: 556364
 
 import requests
 import json
+
 
 def estilizado(titulo):
     '''
@@ -336,8 +337,8 @@ def crud_industria(industria):
         estilizado(f"Bem-vindo a central de infomações da sua industria: {industria['nm_industria']}")
         while not escolha_bool:
             try:
-                escolha = int(input("Escolha entre as seguintes opções\n1)Inserir sitio\n2)Ver seus sitios\n-1)sair\n"))
-                if escolha == 1 or escolha == 2 or escolha == -1:
+                escolha = int(input("Escolha entre as seguintes opções\n1)Inserir sitio\n2)Ver seus sitios\n3)Ver Informação da Industria\n-1)sair\n"))
+                if escolha == 1 or escolha == 2 or escolha == 3 or escolha == -1:
                     escolha_bool= True
                 else:
                     print("Escolha uma opção valida!!")
@@ -355,8 +356,38 @@ def crud_industria(industria):
                         return True
                 else:
                     print("Você não tem nenhum sitio cadastrado para essa industria")
+            case 3:
+                crud_escolha = informacoes_industria(industria)
             case -1:
                 break
+
+def informacoes_industria(industria):
+    estilizado("Bem vindo as informações da Industria")
+    print("Caso o valor seja negativo é porque a industria está com deficit energia")
+    print("Adicione fontes de energia para suprir a demanda")
+    print(f"""
+        Nome:{industria['nm_industria']}
+        Geração:{calcular_geracao(industria['id_industria'])}KW
+    """)
+    return False
+
+def calcular_geracao(id_industria):
+    try:
+        sitios = get_sitios(id_industria)
+        geracao = 0
+        consumo = 0
+        for sitio in sitios:
+            tp_sitio = sitio['tp_fonte']
+            if tp_sitio == 0:
+                maquinas = get_maquinas(sitio['id_sitio'])
+                consumo += calcular_consumo(maquinas)
+            elif tp_sitio == 1 or tp_sitio == 2:
+                fontes = get_fonte(sitio['id_sitio'])
+                consumo += calcular_consumo(fontes)
+            geracao += consumo
+        return geracao 
+    except:
+        print("Erro ao calcular geração")
 
 def crud_sitio(sitio):
     escolha = 0
@@ -370,7 +401,7 @@ def crud_sitio(sitio):
         elif tp_sitio == 1 or tp_sitio == 2:
             lista = get_fonte(id_sitio)
         escolha_bool = False
-        estilizado("Bem-vindo a do sitio de seus veiculos")
+        estilizado("Bem-vindo a central de informações do sitio")
         while not escolha_bool:
             try:
                 escolha = int(input("Escolha entre as seguintes opções\n1)Cadastrar fonte\n2)Informações do sitio\n3)Excluir fonte\n-1)sair\n"))
@@ -385,7 +416,7 @@ def crud_sitio(sitio):
                 if tp_sitio == 0:
                     crud_escolha = cadastrar_maquina(id_sitio,lista)
                 elif tp_sitio == 1 or tp_sitio == 2:
-                    crud_escolha = cadastrar_fonte(id_sitio,lista)
+                    crud_escolha = cadastrar_fonte(id_sitio,lista,tp_sitio)
             case 2:
                 crud_escolha = informacoes_sitio(tp_sitio,lista,sitio)
             case 3:
@@ -423,8 +454,8 @@ def excluir_maquina(lista):
             except ValueError: 
                 print("Escolha uma opção valida!!")
         escolha_bool = False
-        carro = lista[indice]
-        id_maquina = carro['id_maquina']
+        maquina = lista[indice]
+        id_maquina = maquina['id_maquina']
         while not escolha_bool:
             try:
                 escolha = int(input(f"Você tem certeza que deseja excluir esse registro (Ação irreverssivel):  \n1)Sim\n2)Não\n-1)sair\n"))
@@ -530,11 +561,12 @@ def get_endereco(id_endereco):
 def calcular_consumo(lista):
     consumo = 0
     for item in lista:
-        consumo += item['consumo']
+        consumo += item['consumo'if 'consumo' in item else 'potencia']
     return consumo
 
 
-def cadastrar_fonte(id_sitio,lista):
+
+def cadastrar_fonte(id_sitio,lista, tp_sitio):
     print("Bem vindo ao sessão de cadastro de fontes!")
     tentativa = False
     while tentativa != True:
@@ -545,13 +577,13 @@ def cadastrar_fonte(id_sitio,lista):
                 try:
                     potencia = int(input("Qual a potencia da fonte: "))
                     quantidade = int(input("Digite a quantidade de fontes: "))
-                    tipo = int(input("Escolha o tipo da fonte\n[1] Solar. \n[2] Eólica.\n"))
-                    if(1<=tipo>=2):
-                        tentativa = True
+                    if potencia > 0 and quantidade > 0:
+                        tentativa= True
+                        break
                 except:
                     print("Escreva uma opção valida!")
             for _ in range(quantidade):
-                fonte = adicionar_fonte(tipo=tipo,potencia=potencia,id_sitio=id_sitio)
+                fonte = adicionar_fonte(tipo=tp_sitio,potencia=potencia,id_sitio=id_sitio)
                 if(fonte):
                     lista.append(fonte)
             if(fonte):   
@@ -635,7 +667,7 @@ def get_fonte(id_sitio):
             fonte = req.json()
             return fonte
         else:
-            print("Nehum carro encontrado!")
+            print("Nehuma fonte encontrado!")
             return []
     except Exception as e:
         print(e)
@@ -836,7 +868,7 @@ def exportar_json():
     tentativa = False
     while tentativa !=True:
         try:
-            opcao_saida = int(input("Escolha qual tabela você quer extrair para JSON: \n[1] Empresas.\n[2] Enderecos.\n[3] Sitios.\n[4] Industrias.\n[5] Maquinas.\n[6] Aparelho Gerador.\n[-1] Para sair.\n"))
+            opcao_saida = int(input("Escolha qual tabela você quer extrair para JSON: \n[1] Industrias por empresa.\n[2] Sitios por industria.\n[3] Maquinas por sitio.\n[4] Geradores por sitio.\n[-1] Para sair.\n"))
             if 0< opcao_saida <=6 or opcao_saida == -1:
                 tentativa= True
                 return opcao_saida
@@ -845,69 +877,43 @@ def exportar_json():
         except:
                 print("Escreva uma opção valida!")
 
-def exportar_escolha(escolha):
-    try:
+def exportar_escolha(escolha,empresa,industrias,sitios,maquinas,fontes):
         match escolha:
             case 1:
-                req = requests.get(f"http://127.0.0.1:5000/empresa")
-                if req.status_code == 200:
-                    empresas = req.json()
-                    with open('empresa.json', 'w') as f:
-                        json.dump(empresas, f, indent=4)
-                        print("Empresas exportadas com sucesso")
-                else:
-                    print("Não foi possível exportar a tabela empresa.")
-            case 2:
-                req = requests.get(f"http://127.0.0.1:5000/endereco")
-                if req.status_code == 200:
-                    enderecos = req.json()
-                    with open('contatos.json', 'w') as f:
-                        json.dump(enderecos, f, indent=4)
-                        print("Endereço exportado com sucesso")
-                else:
-                    print("Não foi possível exportar a tabela endereco.")
-            case 3:
-                req = requests.get(f"http://127.0.0.1:5000/sitio")
-                if req.status_code == 200:
-                    sitios = req.json()
-                    with open('usuarios.json', 'w') as f:
-                        json.dump(sitios, f, indent=4)
-                        print("Sitios exportados com sucesso")
-                else:
-                    print("Não foi possível exportar a tabela sitio.")
-            case 4:
-                req = requests.get(f"http://127.0.0.1:5000/industria")
-                if req.status_code == 200:
-                    industrias = req.json()
-                    with open('carros.json', 'w') as f:
-                        json.dump(industrias, f, indent=4)
-                        print("Industrias exportadas com sucesso")
-
+                (boolean,industria) = escolher_industria(industrias=industrias)
+                if industria != None:
+                    with open('industrias.json', 'w') as f:
+                        json.dump(industria, f, indent=4)
+                        print("Industria exportada com sucesso")
                 else:
                     print("Não foi possível exportar a tabela industria.")
-            case 5:
-                req = requests.get(f"http://127.0.0.1:5000/maquina")
-                if req.status_code == 200:
-                    maquinas = req.json()
-                    with open('feedback.json', 'w') as f:
-                        json.dump(maquinas, f, indent=4)
-                        print("Maquinas exportadas com sucesso!")
+            case 2:
+                (boolean,sitio) = escolher_industria(industrias=sitios)
+                if sitio != None:
+                    with open('sitios.json', 'w') as f:
+                        json.dump(sitio, f, indent=4)
+                        print("Sitio exportado com sucesso")
                 else:
-                    print("Não foi possível exportar a tabela maquinas.")
-            case 6:
-                req = requests.get("http://127.0.0.1:5000/aparelhoGerado")
-                if req.status_code == 200:
-                    aparelhos = req.json()
-                    with open('consertos.json', 'w') as f:
-                        json.dump(aparelhos, f, indent=4)
-                        print("Aparelhos geradores exportados com sucesso")
+                    print("Não foi possível exportar a tabela sitio.")
+            case 3:
+                (boolean,maquina) = escolher_industria(industrias=maquinas)
+                if maquina != None:
+                    with open('maquinas.json', 'w') as f:
+                        json.dump(maquina, f, indent=4)
+                        print("Maquina exportada com sucesso")
                 else:
-                    print("Não foi possível exportar a tabela aparelho_gerador.")
+                    print("Não foi possível exportar a tabela maquina.")
+            case 4:
+                (boolean,fonte) = escolher_industria(industrias=fontes)
+                if fonte != None:
+                    with open('fontes.json', 'w') as f:
+                        json.dump(fonte, f, indent=4)
+                        print("Fonte exportada com sucesso")
+                else:
+                    print("Não foi possível exportar a tabela fonte.")
             case -1:
                 estilizado("saindo")
                 return
-    except:
-        print("Erro ao exportar dados")
 
 def decisao(opcao,empresa):
     """    
@@ -940,8 +946,29 @@ def decisao(opcao,empresa):
                 else:
                     print("Você não está logado!")
             case 4:
-                escolha = exportar_json()
-                exportar_escolha(escolha)
+                if  empresa or empresa != None: 
+                    emp = empresa[0]
+                    industrias = get_industrias(emp['id_empresa'])
+                    sitios =  []
+                    for industria in industrias:
+                        id_industria = industria['id_industria']
+                        sitioss = get_sitios(id_industria)
+                        for sitio in sitioss:
+                            sitios.append(sitio)
+                    maquinas = []
+                    for sitio in sitios:
+                        maquina = get_maquinas(sitio['id_sitio'])
+                        for m in maquina:
+                            maquinas.append(m)
+                    fontes = []
+                    for sitio in sitios:
+                        fonte = get_fonte(sitio['id_sitio'])
+                        for f in fonte:
+                            fontes.append(f)
+                    escolha = exportar_json()
+                    exportar_escolha(escolha,emp,industrias,sitios,maquinas,fontes)
+                else:
+                    print("Você não está logado!")
             case -1:
                 estilizado("Obrigado, volte sempre!")
     else:

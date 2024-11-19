@@ -1,6 +1,2 @@
-# Todo
-    - conectar com materia de ia se der
-    - adicionar numero no cep dnv
-    - Arrumar as verificações da escolha nas funções
-    - Adicionar excluir mauqina/fonte
-    - ver informações da empresa
+# Global Solution Python
+- Link do video clique [aqui](https://youtu.be/2yaOSa-0bhU)

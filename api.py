@@ -431,9 +431,9 @@ def inserirAparelhoGerado():
         con = conexao()
         cur = con.cursor()
         dados = request.get_json()
-        cur.execute("INSERT INTO (potencia,tipo,id_sitio) values (:potencia,:tipo,:id_sitio)", {'potencia':dados['potencia'],'tipo':dados['tipo'],'id_sitio':dados['id_sitio']})
+        cur.execute("INSERT INTO t_gl_aparelho_gerador (potencia,tipo,id_sitio) values (:potencia,:tipo,:id_sitio)", {'potencia':dados['potencia'],'tipo':dados['tipo'],'id_sitio':dados['id_sitio']})
         con.commit()
-        cur.execute("SELECT * FROM t_gl_aparelho_gerado WHERE ROWNUM = 1 ORDER BY id_aparelho_gerado DESC")
+        cur.execute("SELECT * FROM t_gl_aparelho_gerador WHERE ROWNUM = 1 ORDER BY id_fonte DESC")
         dados = cur.fetchone()
         if dados:
             resultado = {
@@ -461,7 +461,7 @@ def atualizarAparelhoGerado(id):
         dados = request.get_json()
         cur.execute("UPDATE t_gl_aparelho_gerado SET potencia = :potencia WHERE id_aparelho_gerado = :id", {'potencia':dados['potencia'],'id':id})
         con.commit()
-        cur.execute("SELECT * FROM t_gl_aparelho_gerado WHERE id_aparelho_gerado = :id", {'id':id})
+        cur.execute("SELECT * FROM t_gl_aparelho_gerado WHERE id_fonte = :id", {'id':id})
         dados = cur.fetchone()
         if dados:
             resultado = {
@@ -525,7 +525,7 @@ def listarTodosAparelhosGerados():
     try:
         con = conexao()
         cur = con.cursor()
-        cur.execute("SELECT * FROM t_gl_aparelho_gerado")
+        cur.execute("SELECT * FROM t_gl_aparelho_gerador")
         dados = cur.fetchall()
         if dados:
             resultado = []
@@ -553,7 +553,7 @@ def listarAparelhosGerados(id):
     try:
         con = conexao()
         cur = con.cursor()
-        cur.execute("SELECT * FROM t_gl_aparelho_gerado where id_sitio = :id", {"id":id})
+        cur.execute("SELECT * FROM t_gl_aparelho_gerador where id_sitio = :id", {"id":id})
         dados = cur.fetchall()
         if dados:
             resultado = []
