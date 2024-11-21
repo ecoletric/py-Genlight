@@ -42,7 +42,6 @@ def verificar_informacoes(email, senha1, senha2, cnpj, cep):
     Retorna True caso as informações estejam certas, e printa que o cadastro foi realizado, caso contrario retorna False e Printa que o cadastro não foi realizado.
     '''
     if verificar_email(email) and senha1 == senha2 and  len(cep) == 8 and len(cnpj) == 14:
-        estilizado("Cadastro Realizado com sucesso")
         return True
     else:
         print("Você colocou informações erradas, cadastro não realizado.")
@@ -657,8 +656,8 @@ def get_maquinas(id_sitio):
         else:
             print("Nehuma maquina encontrada!")
             return []
-    except Exception as e:
-        print(e)
+    except:
+        print("Erro ao exportar dados")
 
 def get_fonte(id_sitio):
     try:
@@ -669,8 +668,8 @@ def get_fonte(id_sitio):
         else:
             print("Nehuma fonte encontrado!")
             return []
-    except Exception as e:
-        print(e)
+    except:
+        print("Erro ao exportar dados")
 
 def get_sitios(id_industria):
 
@@ -682,8 +681,8 @@ def get_sitios(id_industria):
         else:
             print("Nehum sitio encontrado!")
             return []
-    except Exception as e:
-        print(e)
+    except:
+        print("Erro ao exportar dados")
 
 def cadastrar_sitio(lista_sitios,id_industria):
     print("Bem vindo ao sessão de cadastro de sitios!")
@@ -934,7 +933,6 @@ def decisao(opcao,empresa):
                 if not empresa or empresa == None:
                     user = cadastro()
                     if user != None:
-                        print(user)
                         empresa.append(user)
                 else:
                     print("Você ja esta logado!")
